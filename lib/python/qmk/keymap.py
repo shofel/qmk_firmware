@@ -463,13 +463,14 @@ def list_keymaps(keyboard, c=True, json=True, additional_files=None, fullpath=Fa
 
     # Check community layouts as a fallback
     info = info_json(keyboard)
+    layouts = info.get("community_layouts", [])
 
-    community_parents = list(Path('layouts').glob('*/'))
+    community_parents = list((QMK_FIRMWARE / "layouts").glob('*/'))
     if has_userspace and (Path(QMK_USERSPACE) / "layouts").exists():
-        community_parents.append(Path(QMK_USERSPACE) / "layouts")
+        community_parents.extend((Path(QMK_USERSPACE) / "layouts").glob('*/'))
 
     for community_parent in community_parents:
-        for layout in info.get("community_layouts", []):
+        for layout in layouts:
             cl_path = community_parent / layout
             if cl_path.is_dir():
                 for keymap in cl_path.iterdir():

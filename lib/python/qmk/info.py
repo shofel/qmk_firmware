@@ -9,7 +9,7 @@ from enum import IntFlag
 
 from milc import cli
 
-from qmk.constants import COL_LETTERS, ROW_LETTERS, CHIBIOS_PROCESSORS, LUFA_PROCESSORS, VUSB_PROCESSORS, JOYSTICK_AXES
+from qmk.constants import COL_LETTERS, ROW_LETTERS, CHIBIOS_PROCESSORS, LUFA_PROCESSORS, VUSB_PROCESSORS, JOYSTICK_AXES, QMK_FIRMWARE, QMK_USERSPACE, HAS_QMK_USERSPACE
 from qmk.c_parse import find_layouts, parse_config_h_file, find_led_config
 from qmk.json_schema import deep_update, json_load, validate
 from qmk.keyboard import config_h, rules_mk
@@ -1057,19 +1057,27 @@ def merge_info_jsons(keyboard, info_data):
 def find_info_json(keyboard):
     """Finds all the info.json files associated with a keyboard.
     """
-    # Find the most specific first
-    base_path = Path('keyboards')
-    keyboard_path = base_path / keyboard
-    keyboard_parent = keyboard_path.parent
-    info_jsons = [keyboard_path / 'info.json', keyboard_path / 'keyboard.json']
+    info_jsons = []
+    
+    # Search in both QMK_FIRMWARE and QMK_USERSPACE
+    search_dirs = [QMK_FIRMWARE]
+    if HAS_QMK_USERSPACE:
+        search_dirs.append(QMK_USERSPACE)
+    
+    for search_dir in search_dirs:
+        # Find the most specific first
+        base_path = search_dir / 'keyboards'
+        keyboard_path = base_path / keyboard
+        keyboard_parent = keyboard_path.parent
+        info_jsons.extend([keyboard_path / 'info.json', keyboard_path / 'keyboard.json'])
 
-    # Add in parent folders for least specific
-    for _ in range(5):
-        if keyboard_parent == base_path:
-            break
-        info_jsons.append(keyboard_parent / 'info.json')
-        info_jsons.append(keyboard_parent / 'keyboard.json')
-        keyboard_parent = keyboard_parent.parent
+        # Add in parent folders for least specific
+        for _ in range(5):
+            if keyboard_parent == base_path:
+                break
+            info_jsons.append(keyboard_parent / 'info.json')
+            info_jsons.append(keyboard_parent / 'keyboard.json')
+            keyboard_parent = keyboard_parent.parent
 
     # Return a list of the info.json files that actually exist
     return [info_json for info_json in info_jsons if info_json.exists()]
